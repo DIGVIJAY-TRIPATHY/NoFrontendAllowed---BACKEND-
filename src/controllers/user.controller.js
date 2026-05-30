@@ -109,7 +109,7 @@ const loginUser = asyncHandler(async (req, res) => {
         username,
         password } = req.body;
 
-    if(!username || !email) {
+    if(!username && !email) {
         throw new ApiError(400, "Username or email is required");
     }
 
@@ -130,7 +130,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const {accessToken, refreshToken} = await generateAccesAndRefreshTokens(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
-
+    console.log("loggedIn user", loggedInUser);
     const options = {
         httpOnly: true,
         secure: true
@@ -149,6 +149,8 @@ const loginUser = asyncHandler(async (req, res) => {
             "User logged in successfully"
         )
     )
+
+   
 })
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -163,6 +165,8 @@ const logoutUser = asyncHandler(async (req, res) => {
             new: true
         }
     )
+
+    console.log("loggedOut user", req.user);
 
     const options = {
         httpOnly: true,
