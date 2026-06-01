@@ -58,7 +58,7 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User already exists with the provided email or username");
     }
 
-    const avatarLocalPath = req.files?.avatar[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
     if (!avatarLocalPath) {
@@ -130,7 +130,6 @@ const loginUser = asyncHandler(async (req, res) => {
     const {accessToken, refreshToken} = await generateAccesAndRefreshTokens(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
-    console.log("loggedIn user", loggedInUser);
     const options = {
         httpOnly: true,
         secure: true
