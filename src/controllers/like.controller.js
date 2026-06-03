@@ -125,7 +125,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
 
-    const LikedVideos = await Like.aggregate([
+    const likedVideosAggregate = await Like.aggregate([
         {
             $match: {
                 likedBy: new mongoose.Types.ObjectId(req.user._id),
@@ -137,24 +137,61 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                 from: "videos",
                 localField: "video",
                 foreignField: "_id",
-                as: "video"
+                as: "likedVideo",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "ownerDetails"
+                        }
+                    },
+                    {
+                        $unwind: "$ownerDetails"
+                    },
+                    {
+                        $project: {
+                            videoFile: 1,
+                            thumbnail: 1,
+                            title: 1,
+                            description: 1,
+                            duration: 1,
+                            views: 1,
+                            isPublished: 1,
+                            createdAt: 1,
+                            owner: 1,
+                            ownerDetails: {
+                                _id: "$ownerDetails._id",
+                                username: "$ownerDetails.username",
+                                fullName: "$ownerDetails.fullName",
+                                avatar: "$ownerDetails.avatar"
+                            }
+                        }
+                    }
+                ]
             }
         },
         {
-            $unwind: "$video"
+            $unwind: "$likedVideo"
         },
         {
             $replaceRoot: {
-                newRoot: "$video"
+                newRoot: "$likedVideo"
+            }
+        },
+        {
+            $sort: {
+                createdAt: -1
             }
         }
-    ])
+    ]);
 
     return res
     .status(200)
     .json(new ApiResponse(
         200,
-        LikedVideos,
+        likedVideosAggregate,
         "Liked videos fetched successfully"
     ))
 })
