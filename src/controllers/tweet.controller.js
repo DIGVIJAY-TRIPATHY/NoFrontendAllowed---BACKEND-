@@ -9,7 +9,7 @@ const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
     const {content} = req.body;
 
-    if(!content){
+    if(!content?.trim()){
         throw new ApiError(400,"Content is required")
     }
 
@@ -73,7 +73,7 @@ const updateTweet = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid tweet id");
     }
 
-    if (!content) {
+    if (!content?.trim()) {
         throw new ApiError(400, "Content is required");
     }
 
