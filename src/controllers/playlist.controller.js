@@ -220,7 +220,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Only owner can update the playlist")
     }
 
-    const video = await Playlist.findById(videoId)
+    const video = await Video.findById(videoId)
 
     if(!video) {
         throw new ApiError(404, "video not found")
