@@ -1,5 +1,6 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Playlist} from "../models/playlist.model.js"
+import { Video } from "../models/video.model.js";
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
@@ -10,7 +11,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
     const {name, description} = req.body
 
-    if (!name || !description) {
+    if (!name?.trim() || !description?.trim()) {
         throw new ApiError(400, "Name and description fields are required")
     }
 
@@ -51,7 +52,14 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
                 from: "videos",
                 localField: "videos",
                 foreignField: "_id",
-                as: "videos"
+                as: "videos",
+                pipeline: [
+                    {
+                        $match: {
+                            isPublished: true
+                        }
+                    }
+                ]
             }
         },
         {
@@ -181,7 +189,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     ])
 
     if(!playlist.length) {
-        throw new ApiError(400, "Playlist does not exists")
+        throw new ApiError(404, "Playlist not found")
     }
 
     return res
@@ -209,10 +217,10 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     }
 
     if (playlist.owner.toString() !== req.user?._id.toString()) {
-        throw new ApiError(400, "Only owner can update the playlist")
+        throw new ApiError(403, "Only owner can update the playlist")
     }
 
-    const video = await playlist.findById(videoId)
+    const video = await Playlist.findById(videoId)
 
     if(!video) {
         throw new ApiError(404, "video not found")
@@ -257,7 +265,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     }
 
     if (playlist.owner.toString() !== req.user?._id.toString()) {
-        throw new ApiError(400, "Only owner can update the playlist")
+        throw new ApiError(403, "Only owner can update the playlist")
     }
 
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
@@ -319,6 +327,13 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     const {name, description} = req.body
     //TODO: update playlist
 
+    if (!name?.trim() && !description?.trim()) {
+    throw new ApiError(
+        400,
+        "At least one field is required"
+    );
+}
+
     if (!isValidObjectId(playlistId)) {
         throw new ApiError(400, "Invalid playlist id");
     }
@@ -349,6 +364,13 @@ const updatePlaylist = asyncHandler(async (req, res) => {
             runValidators: true
         }
     );
+
+    if (!updatedPlaylist) {
+    throw new ApiError(
+        404,
+        "Playlist not found or unauthorized"
+    );
+}
 
     return res
     .status(200)
