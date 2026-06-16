@@ -286,12 +286,79 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 const deletePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     // TODO: delete playlist
+
+    if (!isValidObjectId(playlistId)) {
+        throw new ApiError(400, "Invalid playlist id")
+    }
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if (!playlist) {
+        throw new ApiError(404, "Playlist not found");
+    }
+
+    if (playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "Unauthorized action");
+    }
+
+    await Playlist.findByIdAndDelete(playlistId);
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            "Playlist deleted successfully"
+        )
+    )
 })
 
 const updatePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     const {name, description} = req.body
     //TODO: update playlist
+
+    if (!isValidObjectId(playlistId)) {
+        throw new ApiError(400, "Invalid playlist id");
+    }
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if (!playlist) {
+        throw new ApiError(404, "Playlist not found");
+    }
+
+    if (playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "Unauthorized action");
+    }
+
+    const updatedPlaylist = await Playlist.findOneAndUpdate(
+        {
+            _id: playlistId,
+            owner: req.user._id
+        },
+        {
+            $set: {
+                ...(name && { name }),
+                ...(description && { description })
+            }
+        },
+        {
+            new: true,
+            runValidators: true
+        }
+    );
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            updatedPlaylist,
+            "Playlist updated successfully"
+        )
+    )
 })
 
 export {
