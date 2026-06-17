@@ -305,8 +305,36 @@ const updateVideo = asyncHandler(async (req, res) => {
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
     //TODO: delete video
+
+    const { videoId } = req.params
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400,"Invalid video id");
+    }
+
+    const deletedVideo = await Video.findOneAndDelete({
+        _id: videoId,
+        owner: req.user?._id
+    })
+
+    if(!deletedVideo){
+        throw new ApiError(404, "Video not found or you are not authorized to delete it")
+    }
+
+    await Like.deleteMany({
+        video: videoId
+    })
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            "Video deleted successfully"
+        )
+    )
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
