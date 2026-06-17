@@ -1,6 +1,7 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Video} from "../models/video.model.js"
 import {User} from "../models/user.model.js"
+import { Like } from "../models/like.model.js";
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
@@ -123,9 +124,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Title and description are required")
     }
     
-    const videoFileLocalPath = req.files?.videoFile[0]?.path;
+    const videoFileLocalPath = req.files?.videoFile?.[0]?.path;
 
-    const thumbnailLocalPath = req.files?.thumbnail[0]?.path;
+    const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path;
 
     if(!videoFileLocalPath){
         throw new ApiError(400, "Video file is required")
@@ -251,9 +252,18 @@ const updateVideo = asyncHandler(async (req, res) => {
     //TODO: update video details like title, description, thumbnail
 
     const { videoId } = req.params
+    const { title, description } = req.body;
 
     if (!isValidObjectId(videoId)) {
         throw new ApiError(400,"Invalid video id");
+    }
+
+    if(
+        !title?.trim() &&
+        !description?.trim() &&
+        !req.file?.path
+    ) {
+        throw new ApiError(400, "At least one field is required to update")
     }
 
     const video = await Video.findOne({
@@ -344,7 +354,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video id");
     }
 
-    const video = await Video.findByIdAndUpdate(
+    const video = await Video.findOneAndUpdate(
         {
             _id: videoId,
             owner: req.user?._id
