@@ -8,17 +8,24 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-    console.log(userId);
+    const {
+        page = 1,
+        limit = 10,
+        query,
+        sortBy,
+        sortType,
+        userId
+    } = req.query;
+
     const pipeline = [];
 
-    if (query) {
+    if (query?.trim()) {
         pipeline.push({
             $search: {
                 index: "search-videos",
                 text: {
-                    query: query,
-                    path: ["title", "description"] //search only on title, desc
+                    query,
+                    path: ["title", "description"]
                 }
             }
         });
@@ -36,17 +43,29 @@ const getAllVideos = asyncHandler(async (req, res) => {
         });
     }
 
-    pipeline.push({ $match: { isPublished: true } });
+    pipeline.push({
+        $match: {
+            isPublished: true
+        }
+    });
 
-    if (sortBy && sortType) {
-        pipeline.push({
-            $sort: {
-                [sortBy]: sortType === "asc" ? 1 : -1
-            }
-        });
-    } else {
-        pipeline.push({ $sort: { createdAt: -1 } });
-    }
+    const allowedSortFields = [
+        "views",
+        "createdAt",
+        "duration",
+        "title"
+    ];
+
+    const sortField = allowedSortFields.includes(sortBy)
+        ? sortBy
+        : "createdAt";
+
+    pipeline.push({
+        $sort: {
+            [sortField]:
+                sortType === "asc" ? 1 : -1
+        }
+    });
 
     pipeline.push(
         {
@@ -54,34 +73,45 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 from: "users",
                 localField: "owner",
                 foreignField: "_id",
-                as: "ownerDetails",
+                as: "owner",
                 pipeline: [
                     {
                         $project: {
                             username: 1,
-                            "avatar.url": 1
+                            fullName: 1,
+                            avatar: 1
                         }
                     }
                 ]
             }
         },
         {
-            $unwind: "$ownerDetails"
+            $addFields: {
+                owner: {
+                    $first: "$owner"
+                }
+            }
         }
-    )
+    );
 
-    const videoAggregate = Video.aggregate(pipeline);
+    const aggregate = Video.aggregate(pipeline);
 
-    const options = {
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10)
-    };
+    const videos =
+        await Video.aggregatePaginate(
+            aggregate,
+            {
+                page: Number(page),
+                limit: Number(limit)
+            }
+        );
 
-    const video = await Video.aggregatePaginate(videoAggregate, options);
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, video, "Videos fetched successfully"));
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            videos,
+            "Videos fetched successfully"
+        )
+    );
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
