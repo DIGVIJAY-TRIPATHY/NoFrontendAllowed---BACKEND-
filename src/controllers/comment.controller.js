@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose, {isValidObjectId} from "mongoose"
 import {Comment} from "../models/comment.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
@@ -34,7 +34,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                     {
                         $project: {
                             username: 1,
-                            fullname: 1,
+                            fullName: 1,
                             avatar: 1
                         }
                     }
