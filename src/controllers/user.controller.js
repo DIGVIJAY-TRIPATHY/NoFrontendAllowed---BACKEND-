@@ -132,7 +132,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
     const options = {
         httpOnly: true,
-        secure: true
+        secure: req.secure
     }
 
     return res
@@ -169,7 +169,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: req.secure
     }
 
     return res
@@ -180,7 +180,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    const incomingRefreshToken = req.cookies.refreshToken || req.body?.refreshToken;
 
     if(!incomingRefreshToken) {
         throw new ApiError(401, "unauthorized request");
@@ -192,7 +192,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             process.env.REFRESH_TOKEN_SECRET
         )
 
-        const user = await User.findById(decodedToken?._Id);
+        const user = await User.findById(decodedToken?._id);
 
         if(!user) {
             throw new ApiError(401, "Invalid refresh token");
@@ -204,19 +204,19 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         const options = {
             httpOnly: true,
-            secure: true
+            secure: req.secure
         }
 
-        const { accessToken, newrefreshToken } = await generateAccesAndRefreshTokens(user._id);
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccesAndRefreshTokens(user._id);
 
         return res
         .status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newrefreshToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
         .json(
             new ApiResponse(
                 200,
-                {accessToken, refreshToken: newrefreshToken},
+                {accessToken, refreshToken: newRefreshToken},
                 "Acces token refreshed successfully"
             )
         )
@@ -259,7 +259,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(
-        req.use?._id,
+        req.user?._id,
         {
             $set: {
                 fullName,
