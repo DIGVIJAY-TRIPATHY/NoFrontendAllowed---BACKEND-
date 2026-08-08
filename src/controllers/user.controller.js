@@ -91,8 +91,19 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(500, "User registration failed");
     }
 
+    // Auto-login after registration, matching loginUser's cookie logic.
+    const {accessToken, refreshToken} = await generateAccesAndRefreshTokens(user._id);
+
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    }
+
     return res
     .status(201)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(new ApiResponse(201, createdUser, "User registered successfully"))
 })
 

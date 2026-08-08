@@ -13,7 +13,7 @@ import {
     getWatchHistory
 } from '../controllers/user.controller.js';
 import {upload} from "../middlewares/multer.middleware.js"
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyJWT, verifyJWTOptional } from "../middlewares/auth.middleware.js";
 
 
 const router = Router();
@@ -50,7 +50,7 @@ router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvat
 
 router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
-router.route("/c/:username").get(getUserChannelProfile)
+router.route("/c/:username").get(verifyJWTOptional, getUserChannelProfile)
 
 router.route("/history").get(verifyJWT, getWatchHistory)
 
