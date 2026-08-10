@@ -31,6 +31,11 @@ const videoSchema = new Schema(
             type: Boolean,
             default: true
         },
+        status: {
+            type: String,
+            enum: ["pending", "approved"], // pending videos need highCommand approval before going public
+            default: "pending",
+        },
         owner: {
             type: Schema.Types.ObjectId,
             ref: "User",

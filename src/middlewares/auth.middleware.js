@@ -34,6 +34,22 @@ export const verifyJWT= asyncHandler(async(req, _, next)=>{
 })
 
 
+
+export const verifyHighCommand = asyncHandler(async(req, _, next) => {
+    //TODO: allow only highCommand role past this point
+
+    if (!req.user) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
+    if (req.user.role !== "highCommand") {
+        throw new ApiError(403, "You do not have permission to access this resource")
+    }
+
+    next()
+})
+
+
 // For public routes that behave differently when a user IS logged in
 // (e.g. showing "Subscribed" instead of "Subscribe", or an accurate
 // isLiked state) without requiring login to view the page at all.

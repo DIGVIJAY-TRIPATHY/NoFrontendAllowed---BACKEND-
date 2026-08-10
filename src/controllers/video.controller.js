@@ -1,11 +1,11 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Video} from "../models/video.model.js"
 import {User} from "../models/user.model.js"
-import { Like } from "../models/like.model.js";
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import { purgeVideoTraces } from "../utils/videoCleanup.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -46,7 +46,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     pipeline.push({
         $match: {
-            isPublished: true
+            isPublished: true,
+            status: "approved"
         }
     });
 
@@ -149,7 +150,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
         videoFile: uploadedVideo.secure_url,
         thumbnail: uploadedThumbnail.secure_url,
         duration: uploadedVideo.duration,
-        owner: req.user._id
+        owner: req.user._id,
+        status: "pending"
     })
 
     return res
@@ -158,7 +160,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         new ApiResponse(
             201,
             video,
-            "Video published successfully"
+            "Video submitted for review. It will be visible once approved by our team."
         )
     )
 })
@@ -216,6 +218,14 @@ const getVideoById = asyncHandler(async (req, res) => {
     ])
 
     if(!video.length){
+        throw new ApiError(404, "Video not found")
+    }
+
+    const isOwner =
+        req.user?._id &&
+        String(req.user._id) === String(video[0].owner._id);
+
+    if (video[0].status !== "approved" && !isOwner) {
         throw new ApiError(404, "Video not found")
     }
 
@@ -334,9 +344,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Video not found or you are not authorized to delete it")
     }
 
-    await Like.deleteMany({
-        video: videoId
-    })
+    await purgeVideoTraces(deletedVideo)
 
     return res
     .status(200)
