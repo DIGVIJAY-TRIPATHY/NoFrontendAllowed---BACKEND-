@@ -335,10 +335,14 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Invalid video id");
     }
 
-    const deletedVideo = await Video.findOneAndDelete({
-        _id: videoId,
-        owner: req.user?._id
-    })
+    // highCommand can delete any video; regular users can only delete
+    // their own.
+    const deleteFilter =
+        req.user?.role === "highCommand"
+            ? { _id: videoId }
+            : { _id: videoId, owner: req.user?._id }
+
+    const deletedVideo = await Video.findOneAndDelete(deleteFilter)
 
     if(!deletedVideo){
         throw new ApiError(404, "Video not found or you are not authorized to delete it")
